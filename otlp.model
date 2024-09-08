@@ -1,0 +1,160 @@
+Table Brands {
+  brand_id bigint [pk] 
+  brand_name varchar(255) [not null, unique]
+  brand_description text
+  brand_logo_url varchar(255)
+  brand_country varchar(100)
+  founded_date date
+  website_url varchar(255)
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Categories {
+  category_id bigint [pk]
+  category_name varchar(255) [not null]
+  parent_category_id bigint [ref: > Categories.category_id]
+  is_active boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Products {
+  product_id bigint [pk]
+  name varchar(255) [not null]
+  description text
+  sku varchar(50) [not null, unique]
+  brand_id bigint [ref: > Brands.brand_id]
+  category_id bigint [ref: > Categories.category_id]
+  subcategory_id bigint [ref: > Categories.category_id]
+  price decimal(10,2) [not null]
+  stock_quantity int [default: 0]
+  is_active boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Sellers {
+  seller_id bigint [pk]
+  seller_name varchar(255) [not null]
+  company_name varchar(255)
+  tax_id varchar(50)
+  seller_email varchar(255) [not null, unique]
+  seller_phone varchar(20)
+  demographic_segment varchar(50)
+  photo_url varchar(255)
+  license_details text
+  location_id bigint
+  address_id bigint [ref: > Addresses.address_id]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Addresses {
+  address_id bigint [pk]
+  street varchar(255)
+  city varchar(100)
+  state varchar(100)
+  zip_code varchar(20)
+  country varchar(100)
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Customers {
+  customer_id bigint [pk]
+  first_name varchar(255) [not null]
+  last_name varchar(255) [not null]
+  email varchar(255) [not null, unique]
+  phone_number varchar(20)
+  address_id bigint [ref: > Addresses.address_id]
+  prime_status boolean [default: false]
+  account_creation_date date [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Orders {
+  order_id bigint [pk]
+  customer_id bigint [ref: > Customers.customer_id]
+  order_date timestamp [not null]
+  status varchar(50) [not null] 
+  total_amount decimal(10,2) [not null]
+  discount decimal(10,2) [default: 0.00]
+  shipping_cost decimal(10,2) [default: 0.00]
+  payment_method varchar(50)
+  delivery_method varchar(50)
+  shipping_id bigint [ref: > Shipping.shipping_id]
+  delivery_id bigint [ref: > Delivery.delivery_id]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Order_Items {
+  order_item_id bigint [pk]
+  order_id bigint [ref: > Orders.order_id]
+  product_id bigint [ref: > Products.product_id]
+  quantity int [not null]
+  unit_price decimal(10,2) [not null]
+  discount decimal(10,2) [default: 0.00]
+  total_price decimal(10,2) [not null]
+  is_returned boolean [default: false]
+  return_reason varchar(255)
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Payments {
+  payment_id bigint [pk]
+  order_id bigint [ref: > Orders.order_id]
+  payment_method varchar(50)
+  payment_date timestamp [not null]
+  payment_amount decimal(10,2) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Returns {
+  return_id bigint [pk]
+  order_id bigint [ref: > Orders.order_id]
+  product_id bigint [ref: > Products.product_id]
+  return_date timestamp [not null]
+  return_reason varchar(255)
+  refund_amount decimal(10,2) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Reviews {
+  review_id bigint [pk]
+  product_id bigint [ref: > Products.product_id]
+  customer_id bigint [ref: > Customers.customer_id]
+  rating decimal(3,2) [not null]
+  review_text text
+  review_date timestamp [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Shipping {
+  shipping_id bigint [pk]
+  order_id bigint [ref: > Orders.order_id]
+  carrier varchar(100)
+  shipping_date timestamp [not null]
+  estimated_arrival timestamp
+  tracking_number varchar(100) [unique]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Delivery {
+  delivery_id bigint [pk]
+  order_id bigint [ref: > Orders.order_id]
+  customer_id bigint [ref: > Customers.customer_id]
+  delivery_date timestamp
+  delivered_by varchar(100)
+  delivery_status varchar(50)
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
