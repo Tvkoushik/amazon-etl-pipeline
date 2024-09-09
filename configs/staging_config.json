@@ -1,0 +1,66 @@
+{
+    "staging_tables": [
+        {
+            "source": "s3://database_schema_name/customers/",
+            "target_database": "database_schema_name",
+            "target_table": "staging_customers",
+            "cdc_flag_column": "cdc_flag",
+            "data_quality_rules": {
+                "sql_checks": [
+                    "SELECT * FROM df WHERE email LIKE '%@%'",
+                    "SELECT * FROM df WHERE customer_id IS NOT NULL"
+                ],
+                "dataframe_checks": {
+                    "check_not_null": [
+                        "customer_id",
+                        "email"
+                    ],
+                    "check_positive": [
+                        "customer_id"
+                    ]
+                }
+            },
+            "transformations": {
+                "sql_transforms": [
+                    "SELECT cdc_flag, *, UPPER(first_name) as first_name_caps FROM df"
+                ],
+                "dataframe_transforms": [
+                    {
+                        "transform": "df = df.withColumn('full_name', df.first_name + ' ' + df.last_name)"
+                    }
+                ]
+            }
+        },
+        {
+            "source": "s3://database_schema_name/orders/",
+            "target_database": "database_schema_name",
+            "target_table": "staging_orders",
+            "cdc_flag_column": "cdc_flag",
+            "data_quality_rules": {
+                "sql_checks": [
+                    "SELECT * FROM df WHERE total_amount > 0",
+                    "SELECT * FROM df WHERE order_date IS NOT NULL"
+                ],
+                "dataframe_checks": {
+                    "check_not_null": [
+                        "order_id",
+                        "customer_id"
+                    ],
+                    "check_valid_date": [
+                        "order_date"
+                    ]
+                }
+            },
+            "transformations": {
+                "sql_transforms": [
+                    "SELECT cdc_flag,*, YEAR(order_date) as order_year FROM df"
+                ],
+                "dataframe_transforms": [
+                    {
+                        "transform": "df = df.withColumn('discounted_total', df.total_amount - df.discount)"
+                    }
+                ]
+            }
+        }
+    ]
+}
