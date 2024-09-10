@@ -11,7 +11,7 @@ glueContext = GlueContext(SparkSession.builder.getOrCreate())
 spark = glueContext.spark_session
 
 # Load the configuration file for staging
-with open("config/staging_config.json", "r") as config_file:
+with open("configs/staging_config.json", "r") as config_file:
     config = json.load(config_file)
 
 # Process each staging table defined in the configuration

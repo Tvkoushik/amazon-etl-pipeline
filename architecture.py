@@ -49,16 +49,42 @@ with Diagram("Amazon ETL Pipeline Architecture", show=False, direction="LR"):
     user >> Edge(label="Analyze", color="blue") >> quicksight
 
     # Data Ingestion Flow
-    source_db >> Edge(label="CDC Data", color="green", style="bold") >> dms >> Edge(label="Raw Files", color="darkgreen") >> s3_raw
+    (
+        source_db
+        >> Edge(label="CDC Data", color="green", style="bold")
+        >> dms
+        >> Edge(label="Raw Files", color="darkgreen")
+        >> s3_raw
+    )
 
     # Data Processing & Transformation Flow
-    s3_raw >> Edge(label="Run Glue Job", color="orange") >> glue_staging_job >> Edge(label="Staging Data", color="orange") >> s3_staging
+    (
+        s3_raw
+        >> Edge(label="Run Glue Job", color="orange")
+        >> glue_staging_job
+        >> Edge(label="Staging Data", color="orange")
+        >> s3_staging
+    )
     glue_staging_job >> redshift_staging
-    redshift_staging >> Edge(label="Load Dimensions", color="orange") >> glue_dim_job >> redshift_dimensions
-    redshift_dimensions >> Edge(label="Load Facts", color="orange") >> glue_fact_job >> redshift_facts
+    (
+        redshift_staging
+        >> Edge(label="Load Dimensions", color="orange")
+        >> glue_dim_job
+        >> redshift_dimensions
+    )
+    (
+        redshift_dimensions
+        >> Edge(label="Load Facts", color="orange")
+        >> glue_fact_job
+        >> redshift_facts
+    )
 
     # Monitoring & Orchestration Flow
-    step_functions >> Edge(label="Trigger Jobs", color="blue", style="dashed") >> glue_staging_job
+    (
+        step_functions
+        >> Edge(label="Trigger Jobs", color="blue", style="dashed")
+        >> glue_staging_job
+    )
     step_functions >> glue_dim_job
     step_functions >> glue_fact_job
     glue_staging_job >> Edge(label="Logs", color="blue", style="dotted") >> monitoring
@@ -66,7 +92,11 @@ with Diagram("Amazon ETL Pipeline Architecture", show=False, direction="LR"):
     glue_fact_job >> monitoring
 
     # Security and Governance
-    step_functions >> Edge(label="IAM Role Assignment", color="red", style="dotted") >> iam
+    (
+        step_functions
+        >> Edge(label="IAM Role Assignment", color="red", style="dotted")
+        >> iam
+    )
     glue_staging_job >> access_control
     glue_dim_job >> access_control
     glue_fact_job >> access_control
