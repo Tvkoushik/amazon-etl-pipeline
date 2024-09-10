@@ -55,6 +55,12 @@ Amazon's operational scale requires efficient real-time data ingestion. **Change
 
 ---
 
+## Data Model (OLTP and OLAP)
+
+![OLTP Model](otlp_model.png)
+
+![OLAP Model](olap_model.png)
+
 ## Transform
 
 ### Objective
