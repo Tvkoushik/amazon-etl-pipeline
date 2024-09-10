@@ -1,0 +1,138 @@
+Table dim_product {
+  product_id bigint [pk]
+  product_name varchar(255) [not null]
+  category_id bigint [ref: > dim_category.category_id]
+  brand_id bigint [ref: > dim_brand.brand_id]
+  price decimal(10,2) [not null]
+  launch_date date
+  current_stock_quantity int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dim_seller {
+  seller_id bigint [pk]
+  seller_name varchar(255) [not null]
+  company_name varchar(255)
+  total_sales_amount decimal(18,2)
+  total_refunds decimal(18,2)
+  total_returns int
+  quality_bucket varchar(50)
+  demographic_segment varchar(50)
+  effective_date date
+  expiry_date date [default: '9999-12-31']
+  is_current_record boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dim_customer {
+  customer_id bigint [pk]
+  first_name varchar(255) [not null]
+  last_name varchar(255) [not null]
+  email varchar(255) [not null]
+  phone_number varchar(20)
+  address_id bigint [ref: > dim_address.address_id]
+  prime_status boolean [default: false]
+  total_spent decimal(18,2)
+  transaction_count int
+  refund_count int
+  quality_bucket varchar(50)
+  effective_date date
+  expiry_date date [default: '9999-12-31']
+  is_current_record boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dim_category {
+  category_id bigint [pk]
+  category_name varchar(255) [not null]
+  parent_category_id bigint [ref: > dim_category.category_id]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dim_brand {
+  brand_id bigint [pk]
+  brand_name varchar(255) [not null]
+  country varchar(100)
+  founded_date date
+  website_url varchar(255)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dim_date {
+  date_id bigint [pk]
+  date date [not null]
+  day_of_week int
+  day_of_month int
+  day_of_year int
+  week_of_year int
+  month int
+  month_name varchar(20)
+  quarter int
+  year int
+  is_weekend boolean
+  is_holiday boolean [default: false]
+}
+
+Table dim_time {
+  time_id bigint [pk]
+  hour int
+  minute int
+  second int
+  period varchar(2)
+  time_of_day_segment varchar(20)
+}
+
+Table dim_address {
+  address_id bigint [pk]
+  street varchar(255)
+  city varchar(100)
+  state varchar(100)
+  zip_code varchar(20)
+  country varchar(100)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table fact_sales {
+  sale_id bigint [pk]
+  order_id bigint
+  customer_id bigint [ref: > dim_customer.customer_id]
+  product_id bigint [ref: > dim_product.product_id]
+  seller_id bigint [ref: > dim_seller.seller_id]
+  quantity int [not null]
+  sale_date_id bigint [ref: > dim_date.date_id]
+  total_amount decimal(18,2) [not null]
+  discount_amount decimal(18,2)
+  net_amount decimal(18,2) [not null]
+  refund_amount decimal(18,2)
+  is_returned boolean [default: false]
+}
+
+Table fact_orders {
+  order_id bigint [pk]
+  customer_id bigint [ref: > dim_customer.customer_id]
+  order_date_id bigint [ref: > dim_date.date_id]
+  total_order_value decimal(18,2) [not null]
+  total_discount decimal(18,2)
+  shipping_cost decimal(18,2)
+  payment_method varchar(50)
+  delivery_method varchar(50)
+  order_status varchar(50)
+}
+
+Table fact_refunds {
+  refund_id bigint [pk]
+  order_id bigint
+  customer_id bigint [ref: > dim_customer.customer_id]
+  product_id bigint [ref: > dim_product.product_id]
+  seller_id bigint [ref: > dim_seller.seller_id]
+  refund_date_id bigint [ref: > dim_date.date_id]
+  refund_amount decimal(18,2) [not null]
+  refund_reason varchar(255)
+}

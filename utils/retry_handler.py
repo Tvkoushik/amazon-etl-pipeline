@@ -15,7 +15,8 @@ def retry(table_name, max_retries=3, backoff_factor=2):
         bool: True if the retry was successful, False otherwise.
     """
     retries = 0
-    backoff_time = 1
+    backoff_time = 10  # Initial backoff time in seconds
+
     while retries < max_retries:
         try:
             # Attempt to reprocess the table

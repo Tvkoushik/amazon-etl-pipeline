@@ -1,0 +1,103 @@
+{
+    "dimension_tables": [
+        {
+            "staging_table": "staging_customers",
+            "target_database": "database_schema_name",
+            "dimension_table": "dim_customer",
+            "cdc_flag_column": "cdc_flag",
+            "primary_key": "customer_id",
+            "scd_type_2": true,
+            "preactions": "TRUNCATE TABLE redshift_schema.stage_customer;",
+            "postactions": "MERGE INTO redshift_schema.dim_customer AS dim USING redshift_schema.stage_customer AS stg ON dim.customer_id = stg.customer_id WHEN MATCHED AND stg.cdc_flag = 'U' AND dim.is_current_record = True THEN UPDATE SET dim.is_current_record = False, dim.expiry_date = current_date WHEN NOT MATCHED AND stg.cdc_flag = 'U' THEN INSERT (customer_id, first_name, last_name, email, total_spent, transaction_count, refund_count, prime_status, effective_date, expiry_date, is_current_record) VALUES (stg.customer_id, stg.first_name, stg.last_name, stg.email, stg.total_spent, stg.transaction_count, stg.refund_count, stg.prime_status, current_date, '9999-12-31', True) WHEN NOT MATCHED AND stg.cdc_flag = 'I' THEN INSERT (customer_id, first_name, last_name, email, total_spent, transaction_count, refund_count, prime_status, effective_date, expiry_date, is_current_record) VALUES (stg.customer_id, stg.first_name, stg.last_name, stg.email, stg.total_spent, stg.transaction_count, stg.refund_count, stg.prime_status, current_date, '9999-12-31', True) WHEN MATCHED AND stg.cdc_flag = 'D' AND dim.is_current_record = True THEN UPDATE SET dim.is_current_record = False, dim.expiry_date = current_date;",
+            "data_quality_rules": {
+                "sql_checks": [
+                    "SELECT * FROM df WHERE email LIKE '%@%'",
+                    "SELECT * FROM df WHERE customer_id IS NOT NULL"
+                ],
+                "dataframe_checks": {
+                    "check_not_null": [
+                        "customer_id",
+                        "email"
+                    ]
+                }
+            },
+            "transformations": {
+                "sql_transforms": [
+                    "SELECT * FROM df"
+                ],
+                "dataframe_transforms": [
+                    {
+                        "transform": "df = df.withColumn('full_name', df.first_name + ' ' + df.last_name)"
+                    }
+                ]
+            }
+        },
+        {
+            "staging_table": "staging_orders",
+            "target_database": "database_schema_name",
+            "dimension_table": "dim_orders",
+            "cdc_flag_column": "cdc_flag",
+            "primary_key": "order_id",
+            "scd_type_2": false,
+            "preactions": "",
+            "postactions": "INSERT INTO redshift_schema.dim_orders (order_id, customer_id, order_date, total_amount, discount, discounted_total, order_year) VALUES (?, ?, ?, ?, ?, ?, ?) from redshift_schema.stage_orders;",
+            "data_quality_rules": {
+                "sql_checks": [
+                    "SELECT * FROM df WHERE total_amount > 0",
+                    "SELECT * FROM df WHERE order_date IS NOT NULL"
+                ],
+                "dataframe_checks": {
+                    "check_not_null": [
+                        "order_id",
+                        "customer_id"
+                    ],
+                    "check_valid_date": [
+                        "order_date"
+                    ]
+                }
+            },
+            "transformations": {
+                "sql_transforms": [
+                    "SELECT cdc_flag, *, YEAR(order_date) as order_year FROM df"
+                ],
+                "dataframe_transforms": [
+                    {
+                        "transform": "df = df.withColumn('discounted_total', df.total_amount - df.discount)"
+                    }
+                ]
+            }
+        },
+        {
+            "staging_table": "staging_seller",
+            "target_database": "database_schema_name",
+            "dimension_table": "dim_seller",
+            "cdc_flag_column": "cdc_flag",
+            "primary_key": "seller_id",
+            "scd_type_2": true,
+            "preactions": "TRUNCATE TABLE redshift_schema.stage_seller;",
+            "postactions": "MERGE INTO redshift_schema.dim_seller AS dim USING redshift_schema.stage_seller AS stg ON dim.seller_id = stg.seller_id WHEN MATCHED AND stg.cdc_flag = 'U' AND dim.is_current_record = True THEN UPDATE SET dim.is_current_record = False, dim.expiry_date = current_date WHEN NOT MATCHED AND stg.cdc_flag = 'U' THEN INSERT (seller_id, seller_name, company_name, total_sales_amount, total_refunds, total_returns, quality_bucket, effective_date, expiry_date, is_current_record) VALUES (stg.seller_id, stg.seller_name, stg.company_name, stg.total_sales_amount, stg.total_refunds, stg.total_returns, stg.quality_bucket, current_date, '9999-12-31', True) WHEN NOT MATCHED AND stg.cdc_flag = 'I' THEN INSERT (seller_id, seller_name, company_name, total_sales_amount, total_refunds, total_returns, quality_bucket, effective_date, expiry_date, is_current_record) VALUES (stg.seller_id, stg.seller_name, stg.company_name, stg.total_sales_amount, stg.total_refunds, stg.total_returns, stg.quality_bucket, current_date, '9999-12-31', True) WHEN MATCHED AND stg.cdc_flag = 'D' AND dim.is_current_record = True THEN UPDATE SET dim.is_current_record = False, dim.expiry_date = current_date;",
+            "data_quality_rules": {
+                "sql_checks": [
+                    "SELECT * FROM df WHERE seller_email LIKE '%@%'",
+                    "SELECT * FROM df WHERE seller_id IS NOT NULL"
+                ],
+                "dataframe_checks": {
+                    "check_not_null": [
+                        "seller_id",
+                        "seller_name"
+                    ]
+                }
+            },
+            "transformations": {
+                "sql_transforms": [
+                    "SELECT cdc_flag, *, UPPER(seller_name) as seller_name_caps FROM df"
+                ],
+                "dataframe_transforms": [
+                    {
+                        "transform": "df = df.withColumn('location_and_company', df.location_id + ' ' + df.company_name)"
+                    }
+                ]
+            }
+        }
+    ]
+}

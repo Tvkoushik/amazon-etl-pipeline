@@ -1,0 +1,41 @@
+{
+    "fact_tables": [
+        {
+            "fact_table": "fact_sales",
+            "staging_table": "staging_order_items",
+            "dimension_tables": {
+                "dim_customer": "dim_customer",
+                "dim_product": "dim_product",
+                "dim_seller": "dim_seller",
+                "dim_date": "dim_date"
+            },
+            "primary_key": "order_item_id",
+            "load_query": "SELECT oi.order_item_id AS sale_id, oi.order_id, o.customer_id, oi.product_id, o.seller_id, oi.quantity, d_date.date_id AS sale_date_id, oi.total_price AS total_amount, oi.discount AS discount_amount, (oi.total_price - oi.discount) AS net_amount, COALESCE(oi.refund_amount, 0) AS refund_amount, CASE WHEN oi.is_returned THEN True ELSE False END AS is_returned FROM staging_order_items oi JOIN staging_orders o ON oi.order_id = o.order_id JOIN dim_customer d_c ON o.customer_id = d_c.customer_id JOIN dim_product d_p ON oi.product_id = d_p.product_id JOIN dim_seller d_s ON o.seller_id = d_s.seller_id JOIN dim_date d_date ON o.order_date = d_date.date",
+            "preactions": ""
+        },
+        {
+            "fact_table": "fact_orders",
+            "staging_table": "staging_orders",
+            "dimension_tables": {
+                "dim_customer": "dim_customer",
+                "dim_date": "dim_date"
+            },
+            "primary_key": "order_id",
+            "load_query": "SELECT o.order_id, o.customer_id, d_date.date_id AS order_date_id, o.total_amount AS total_order_value, o.discount AS total_discount, o.shipping_cost, o.payment_method, o.delivery_method, o.status AS order_status FROM staging_orders o JOIN dim_customer d_c ON o.customer_id = d_c.customer_id JOIN dim_date d_date ON o.order_date = d_date.date",
+            "preactions": ""
+        },
+        {
+            "fact_table": "fact_refunds",
+            "staging_table": "staging_returns",
+            "dimension_tables": {
+                "dim_customer": "dim_customer",
+                "dim_product": "dim_product",
+                "dim_seller": "dim_seller",
+                "dim_date": "dim_date"
+            },
+            "primary_key": "return_id",
+            "load_query": "SELECT r.return_id AS refund_id, r.order_id, o.customer_id, r.product_id, o.seller_id, d_date.date_id AS refund_date_id, r.refund_amount, r.return_reason FROM staging_returns r JOIN staging_orders o ON r.order_id = o.order_id JOIN dim_customer d_c ON o.customer_id = d_c.customer_id JOIN dim_product d_p ON r.product_id = d_p.product_id JOIN dim_seller d_s ON o.seller_id = d_s.seller_id JOIN dim_date d_date ON r.return_date = d_date.date",
+            "preactions": ""
+        }
+    ]
+}
