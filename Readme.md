@@ -13,7 +13,7 @@
 ---
 
 ## Introduction
-This document explains the end-to-end AWS-based ETL pipeline built to ingest, transform, and load data into Amazon Redshift for analytics. It describes each step of the process, the AWS services used, the decisions made, and best practices employed to handle large-scale data ingestion and analytics for real-time processing.
+This Repository explains the end-to-end AWS-based ETL pipeline built to ingest, transform, and load data into Amazon Redshift for analytics. It describes each step of the process, the AWS services used, the decisions made, and best practices employed to handle large-scale data ingestion and analytics for real-time processing.
 
 ---
 
