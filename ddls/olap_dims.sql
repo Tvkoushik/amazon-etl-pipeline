@@ -55,6 +55,53 @@ DISTSTYLE KEY
 DISTKEY (customer_id)
 SORTKEY (effective_date, customer_id);
 
+-- MERGE INTO redshift_schema.dim_customer AS dim 
+-- USING redshift_schema.stage_customer AS stg ON dim.customer_id = stg.customer_id
+-- WHEN MATCHED 
+-- AND stg.cdc_flag = 'U' 
+-- AND dim.is_current_record = True THEN 
+-- UPDATE 
+-- SET 
+--   dim.is_current_record = False, 
+--   dim.expiry_date = current_date 
+-- WHEN NOT MATCHED 
+--   AND stg.cdc_flag = 'U' THEN INSERT (
+--     customer_id, first_name, last_name, 
+--     email, total_spent, transaction_count, 
+--     refund_count, prime_status, effective_date, 
+--     expiry_date, is_current_record
+--   ) 
+-- VALUES 
+--   (
+--     stg.customer_id, stg.first_name, 
+--     stg.last_name, stg.email, stg.total_spent, 
+--     stg.transaction_count, stg.refund_count, 
+--     stg.prime_status, current_date, 
+--     '9999-12-31', True
+--   ) WHEN NOT MATCHED 
+--   AND stg.cdc_flag = 'I' THEN INSERT (
+--     customer_id, first_name, last_name, 
+--     email, total_spent, transaction_count, 
+--     refund_count, prime_status, effective_date, 
+--     expiry_date, is_current_record
+--   ) 
+-- VALUES 
+--   (
+--     stg.customer_id, stg.first_name, 
+--     stg.last_name, stg.email, stg.total_spent, 
+--     stg.transaction_count, stg.refund_count, 
+--     stg.prime_status, current_date, 
+--     '9999-12-31', True
+--   ) 
+-- WHEN MATCHED 
+--   AND stg.cdc_flag = 'D' 
+--   AND dim.is_current_record = True THEN 
+-- UPDATE 
+-- SET 
+--   dim.is_current_record = False, 
+--   dim.expiry_date = current_date;
+
+
 CREATE TABLE redshift_schema.dim_date (
     date_id BIGINT ENCODE zstd NOT NULL,       
     date DATE ENCODE zstd NOT NULL,            
