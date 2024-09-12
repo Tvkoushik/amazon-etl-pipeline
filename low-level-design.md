@@ -96,3 +96,77 @@
 - **Redshift Query Performance**: Regular reviews of **query execution plans** and optimizations to **SORT** and **DIST keys** ensure efficient queries.
 
 - **S3 Monitoring**: **S3 request rates** and usage patterns are monitored to ensure optimized data transfer to Redshift.
+
+
+# Edge Cases for the ETL Pipeline
+
+## 1. Data Ingestion (CDC via DMS & Kinesis Streams)
+- **Edge Case**: **CDC Misses Changes (Lag/Delay)**
+  - *Description*: There might be delays or failures in capturing CDC changes in real-time due to high load or network latency.
+  - *Mitigation*: Set up CloudWatch alarms to monitor CDC replication lag and set retries for missed changes.
+
+- **Edge Case**: **Schema Changes in Source DB**
+  - *Description*: Changes in the schema of the source PostgreSQL DB might break the DMS or Kinesis jobs.
+  - *Mitigation*: Use AWS Glue Data Catalog with version control to track schema changes. Add transformation logic to handle schema drift.
+
+- **Edge Case**: **Kinesis Stream Shard Capacity**
+  - *Description*: If the throughput exceeds the shard capacity of the Kinesis stream, data might be throttled or lost.
+  - *Mitigation*: Use Kinesis scaling mechanisms to automatically adjust the number of shards based on incoming data.
+
+## 2. Data Processing and Transformation (Glue Batch and Streaming Jobs)
+- **Edge Case**: **Out-of-Order Data in Kinesis**
+  - *Description*: Real-time data might arrive out of order due to network delays or processing time.
+  - *Mitigation*: Implement time window-based event processing in Glue Streaming jobs to handle late-arriving data within an acceptable window.
+
+- **Edge Case**: **Duplicate Data from DMS**
+  - *Description*: Duplicate rows may be created during the CDC process if the same event is captured twice.
+  - *Mitigation*: Use deduplication logic in Glue jobs or ensure proper primary keys and deduplication in Redshift.
+
+- **Edge Case**: **Data Skew**
+  - *Description*: Uneven distribution of data in Spark partitions could result in some partitions being much larger than others, slowing down processing.
+  - *Mitigation*: Use partitioning and bucketing strategies based on the data distribution, ensuring parallelism in the Glue jobs.
+
+- **Edge Case**: **Partial Data Loads or Job Failures**
+  - *Description*: Glue jobs might fail mid-process, leading to partial or incomplete data loads.
+  - *Mitigation*: Implement checkpointing mechanisms and ensure idempotent Glue jobs to handle retries. Use S3 lifecycle policies to prevent processing the same files multiple times.
+
+## 3. Loading to Data Warehouse (Redshift and Delta Lake)
+- **Edge Case**: **Redshift Table Locking**
+  - *Description*: Multiple Glue jobs loading data concurrently into the same Redshift table can cause table locking issues.
+  - *Mitigation*: Use partitioning strategies to write to separate tables or apply locking mechanisms. Consider using RA3 node types with managed storage.
+
+- **Edge Case**: **SCD Type 2 Updates Failing**
+  - *Description*: When merging data (for SCD Type 2 logic), existing records might not get updated correctly.
+  - *Mitigation*: Ensure merge queries handle `NULL` or unexpected values properly. Verify that CDC flags (`I`, `U`, `D`) are used consistently.
+
+- **Edge Case**: **Delta Lake Compaction/Storage Limits**
+  - *Description*: Over time, too many small files in Delta Lake can degrade performance or lead to excessive storage consumption.
+  - *Mitigation*: Periodically run compaction jobs on Delta Lake to merge smaller files into larger ones, optimizing storage and query performance.
+
+## 4. Serving Layer (Redshift and Delta Lake Querying)
+- **Edge Case**: **Slow Queries in Redshift**
+  - *Description*: Queries in Redshift might run slowly due to poor distribution keys, missing sort keys, or a lack of indexing.
+  - *Mitigation*: Regularly analyze Redshift query performance using `EXPLAIN` plans and optimize `DIST` and `SORT` keys based on the query patterns. Consider using **Concurrency Scaling** for sudden spikes in query demand.
+
+
+## 5. Monitoring & Orchestration (Step Functions & CloudWatch)
+- **Edge Case**: **Step Functions Timeout**
+  - *Description*: Long-running Glue jobs might cause Step Functions to timeout or fail.
+  - *Mitigation*: Use **wait states** and retry mechanisms in Step Functions. Also, split long-running Glue jobs into smaller, more manageable tasks.
+
+- **Edge Case**: **Missed Alerts in CloudWatch**
+  - *Description*: CloudWatch alarms might miss alerting due to configuration issues or thresholds not being hit.
+  - *Mitigation*: Set multiple alerting conditions (e.g., lag, job failure, latency) and use **SNS** or other alerting mechanisms to send notifications via email/SMS.
+
+## 6. Governance & Security (IAM, Lake Formation, Data Encryption)
+- **Edge Case**: **IAM Role Misconfigurations**
+  - *Description*: Incorrect IAM role policies might block necessary Glue jobs, Redshift queries, or S3 access.
+  - *Mitigation*: Ensure fine-grained IAM role permissions for each AWS service. Use **least-privilege** principles to limit permissions to only required resources.
+
+- **Edge Case**: **Data Leakage from S3**
+  - *Description*: Misconfigured S3 bucket policies might expose raw or processed data to unauthorized users.
+  - *Mitigation*: Use **S3 bucket policies** to restrict access, and ensure all sensitive data is encrypted at rest and in transit (SSE-KMS).
+
+- **Edge Case**: **Sensitive Data in Real-Time Streams**
+  - *Description*: Personal or sensitive data may be ingested via Kinesis or DMS.
+  - *Mitigation*: Mask or anonymize sensitive data in the Kinesis stream or DMS before processing it in Glue jobs. Ensure that sensitive data columns are not exposed in raw logs or monitoring systems.

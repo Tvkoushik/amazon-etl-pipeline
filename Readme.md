@@ -20,6 +20,8 @@ This Repository explains the end-to-end AWS-based ETL pipeline built to ingest, 
 ## Architecture Overview
 ![Architecture Diagram](amazon_etl_pipeline_architecture.png)
 
+![Lambda Architecture](lambda_architecture_with_batch_and_streaming.png)
+
 The ETL pipeline follows a structured approach, using the following key AWS components:
 
 - **Amazon RDS (PostgreSQL)**: As the source transactional database.
