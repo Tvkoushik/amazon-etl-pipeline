@@ -56,50 +56,65 @@ DISTKEY (customer_id)
 SORTKEY (effective_date, customer_id);
 
 -- MERGE INTO redshift_schema.dim_customer AS dim 
--- USING redshift_schema.stage_customer AS stg ON dim.customer_id = stg.customer_id
--- WHEN MATCHED 
--- AND stg.cdc_flag = 'U' 
--- AND dim.is_current_record = True THEN 
--- UPDATE 
--- SET 
---   dim.is_current_record = False, 
---   dim.expiry_date = current_date 
--- WHEN NOT MATCHED 
---   AND stg.cdc_flag = 'U' THEN INSERT (
---     customer_id, first_name, last_name, 
---     email, total_spent, transaction_count, 
---     refund_count, prime_status, effective_date, 
---     expiry_date, is_current_record
+-- USING (
+--     SELECT 
+--         stg.customer_id,
+--         stg.first_name,
+--         stg.last_name,
+--         stg.email,
+--         stg.phone_number,
+--         stg.address_id,
+--         stg.prime_status,
+--         SUM(oi.total_price - oi.discount) AS total_spent,  -- Derived from order items
+--         COUNT(o.order_id) AS transaction_count,  -- Derived from orders
+--         COUNT(r.return_id) AS refund_count,  -- Derived from returns
+--         CASE 
+--             WHEN COUNT(o.order_id) >= 10 AND SUM(oi.total_price) > 1000 THEN 'High'
+--             WHEN COUNT(o.order_id) >= 5 THEN 'Medium'
+--             ELSE 'Low'
+--         END AS quality_bucket,
+--         current_date AS effective_date,
+--         '9999-12-31' AS expiry_date,
+--         True AS is_current_record,
+--         stg.created_at,
+--         stg.updated_at
+--     FROM redshift_schema.staging_customers stg
+--     LEFT JOIN redshift_schema.staging_orders o ON o.customer_id = stg.customer_id
+--     LEFT JOIN redshift_schema.staging_order_items oi ON oi.order_id = o.order_id
+--     LEFT JOIN redshift_schema.staging_returns r ON r.customer_id = stg.customer_id
+--     WHERE stg.cdc_flag IN ('I', 'U')
+--     GROUP BY stg.customer_id, stg.first_name, stg.last_name, stg.email, 
+--              stg.phone_number, stg.address_id, stg.prime_status, 
+--              stg.created_at, stg.updated_at
+-- ) AS stg 
+-- ON dim.customer_id = stg.customer_id
+
+-- WHEN MATCHED AND dim.is_current_record = True THEN 
+--   UPDATE SET 
+--     dim.is_current_record = False, 
+--     dim.expiry_date = current_date
+
+-- WHEN NOT MATCHED THEN 
+--   INSERT (
+--     customer_id, first_name, last_name, email, 
+--     phone_number, address_id, prime_status, 
+--     total_spent, transaction_count, refund_count, 
+--     quality_bucket, effective_date, expiry_date, 
+--     is_current_record, created_at, updated_at
 --   ) 
--- VALUES 
---   (
---     stg.customer_id, stg.first_name, 
---     stg.last_name, stg.email, stg.total_spent, 
---     stg.transaction_count, stg.refund_count, 
---     stg.prime_status, current_date, 
---     '9999-12-31', True
---   ) WHEN NOT MATCHED 
---   AND stg.cdc_flag = 'I' THEN INSERT (
---     customer_id, first_name, last_name, 
---     email, total_spent, transaction_count, 
---     refund_count, prime_status, effective_date, 
---     expiry_date, is_current_record
---   ) 
--- VALUES 
---   (
---     stg.customer_id, stg.first_name, 
---     stg.last_name, stg.email, stg.total_spent, 
---     stg.transaction_count, stg.refund_count, 
---     stg.prime_status, current_date, 
---     '9999-12-31', True
---   ) 
--- WHEN MATCHED 
---   AND stg.cdc_flag = 'D' 
---   AND dim.is_current_record = True THEN 
--- UPDATE 
--- SET 
---   dim.is_current_record = False, 
---   dim.expiry_date = current_date;
+--   VALUES (
+--     stg.customer_id, stg.first_name, stg.last_name, 
+--     stg.email, stg.phone_number, stg.address_id, 
+--     stg.prime_status, stg.total_spent, stg.transaction_count, 
+--     stg.refund_count, stg.quality_bucket, current_date, 
+--     '9999-12-31', True, stg.created_at, stg.updated_at
+--   )
+
+-- WHEN MATCHED AND stg.cdc_flag = 'D' AND dim.is_current_record = True THEN 
+--   UPDATE SET 
+--     dim.is_current_record = False, 
+--     dim.expiry_date = current_date;
+
 
 
 CREATE TABLE redshift_schema.dim_date (
