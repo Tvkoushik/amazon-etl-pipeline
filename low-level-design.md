@@ -5,6 +5,13 @@
 - **Target Format**: Use **Parquet** instead of CSV for more efficient storage and faster query performance. `--s3-settings='{"DataFormat": "parquet"}'`
   - **Reason**: Parquet is columnar, providing better compression and query speed, especially for large datasets.
   
+
+  database/schema/table/.parquet -> archive/year= /month= /
+
+  5 -> 1000
+  
+
+
 - **File Naming & Path Structure**: Organize files in S3 by timestamps and partition keys. DMS stores files with default names like LOAD00000001.csv for full loads and timestamp-based names for CDC files (e.g., 20141029-1134010000.csv).
   - **Reason**: Improves file management, query performance, and enables better partitioning in downstream processes.
   
